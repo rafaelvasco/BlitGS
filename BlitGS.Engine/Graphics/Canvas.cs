@@ -1,0 +1,321 @@
+using System;
+using System.Runtime.CompilerServices;
+using static bottlenoselabs.SDL;
+
+namespace BlitGS.Engine;
+
+public static unsafe class Canvas
+{
+    public static int Width { get; private set; }
+
+    public static int Height { get; private set; }
+    
+    public static StretchMode StretchMode { get; private set; }
+
+    private static Pixmap _canvasPixmap = null!;
+    private static Pixmap _targetPixmap = null!;
+
+    private static uint _drawColor;
+    private static int _pixelCount;
+    private static int _pitch;
+    
+    private struct State
+    {
+        public SDL_Renderer* Renderer;
+        public SDL_Texture* CanvasTexture;
+    }
+
+    private static State _state;
+
+    internal static void Init(GameConfig config)
+    {
+        Width = config.CanvasWidth;
+        Height = config.CanvasHeight;
+
+        StretchMode = config.StretchMode;
+
+        _pixelCount = Width * Height;
+
+        _pitch = Width * sizeof(uint);
+        
+        _canvasPixmap = new Pixmap(Width, Height);
+
+        _targetPixmap = _canvasPixmap;
+
+        _drawColor = ColorRGB.Black;
+
+        _clipRectangle = new Rectangle(0, 0, Width, Height);
+        
+        _state.Renderer = SDL_CreateRenderer(Platform.WindowPtr, null,
+            (uint)(SDL_RendererFlags.SDL_RENDERER_ACCELERATED | SDL_RendererFlags.SDL_RENDERER_PRESENTVSYNC));
+
+        _state.CanvasTexture = SDL_CreateTexture(
+            _state.Renderer,
+            (uint)SDL_PixelFormatEnum.SDL_PIXELFORMAT_ABGR8888,
+            (int)SDL_TextureAccess.SDL_TEXTUREACCESS_STREAMING,
+            Width,
+            Height
+        );
+
+        var sdlRenderLogicalMode = StretchMode switch
+        {
+            StretchMode.Integer => SDL_RendererLogicalPresentation.SDL_LOGICAL_PRESENTATION_INTEGER_SCALE,
+            StretchMode.Stretch => SDL_RendererLogicalPresentation.SDL_LOGICAL_PRESENTATION_STRETCH,
+            StretchMode.LetterBox => SDL_RendererLogicalPresentation.SDL_LOGICAL_PRESENTATION_LETTERBOX,
+            StretchMode.Overscan => SDL_RendererLogicalPresentation.SDL_LOGICAL_PRESENTATION_OVERSCAN,
+            _ => SDL_RendererLogicalPresentation.SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
+        };
+
+        _ = SDL_SetRenderLogicalPresentation(_state.Renderer, Width, Height,
+            sdlRenderLogicalMode,
+            SDL_ScaleMode.SDL_SCALEMODE_NEAREST);    
+    }
+
+    internal static void Terminate()
+    {
+        SDL_DestroyTexture(_state.CanvasTexture);
+        SDL_DestroyRenderer(_state.Renderer);
+    }
+    
+
+    public static void Target(Pixmap? target = null)
+    {
+        _targetPixmap = target ?? _canvasPixmap;
+    }
+
+    public static void Color(uint color)
+    {
+        _drawColor = color;
+    }
+
+    public static void Clip(Rectangle? rect = null)
+    {
+        _clipRectangle = rect ?? Rectangle.Empty;
+        _clipActive = ! Rectangle.IsNullOrEmpty(rect);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void PutPixel(uint* buffer, int x, int y, uint c)
+    {
+        int idx = x + y * Width;
+
+        if (!_clipActive)
+        {
+            *(buffer + idx) = c;
+            return;
+        }
+
+        if (
+            x >= _clipRectangle.Left && 
+            x <= _clipRectangle.Right && 
+            y >= _clipRectangle.Y && 
+            y <= _clipRectangle.Bottom)
+        {
+            *(buffer + idx) = c;
+        }
+    }
+
+    public static void Pixel(int x, int y)
+    {
+        var c = _drawColor;
+        
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            PutPixel(ptr, x, y, c);
+        }
+    }
+
+    public static ColorRGB Get(int x, int y)
+    {
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            int idx = x + y * Width;
+            
+            return *(ptr + idx);
+        }
+    }
+
+    public static void Fill()
+    {
+        var c = _drawColor;
+        
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            for (int i = 0; i < _pixelCount; ++i)
+            {
+                *(ptr + i) = c;
+            }
+        }
+    }
+
+    public static void FillRect(int x, int y, int w, int h)
+    {
+        var c = _drawColor;
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            for (var ry = y; ry < y + h; ++ry)
+            {
+                for (var rx = x; rx < x + w; ++rx)
+                {
+                    PutPixel(ptr, rx, ry, c);
+                }
+            }
+        }
+    }
+
+    public static void Rect(int x, int y, int w, int h)
+    {
+        var c = _drawColor;
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            HLine(ptr, x, x + w, y, c); // Top
+            HLine(ptr, x, x + w, y + h, c); // Down
+            VLine(ptr, y, y + h, x, c); // Left
+            VLine(ptr, y, y + h, x + w, c); // Right
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void HLine(uint* ptr, int sx, int ex, int y, uint c)
+    {
+        for (int x = sx; x <= ex; ++x)
+        {
+            PutPixel(ptr, x, y, c);
+        }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void VLine(uint* ptr, int sy, int ey, int x, uint c)
+    {
+        for (int y = sy; y <= ey; ++y)
+        {
+            PutPixel(ptr, x, y, c);
+        }
+    }
+    
+    public static void Line(int x0, int y0, int x1, int y1)
+    {
+        int dx = Math.Abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -Math.Abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy;
+
+        var c = _drawColor;
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            while (true)
+            {
+                PutPixel(ptr, x0, y0, c);
+                if (x0 == x1 && y0 == y1) break;
+                var e2 = 2 * err;
+                if (e2 >= dy)
+                {
+                    err += dy;
+                    x0 += sx;
+                }
+
+                if (e2 <= dx)
+                {
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+        }
+    }
+    
+    public static void Circle(int centerX, int centerY, int radius)
+    {
+        var c = _drawColor;
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            if (radius > 0)
+            {
+                int x = -radius, y = 0, err = 2 - 2 * radius;
+                do
+                {
+                    PutPixel(ptr,centerX - x, centerY + y, c);
+                    PutPixel(ptr,centerX - y, centerY - x, c);
+                    PutPixel(ptr,centerX + x, centerY - y, c);
+                    PutPixel(ptr,centerX + y, centerY + x, c);
+
+                    radius = err;
+                    if (radius <= y) err += ++y * 2 + 1;
+                    if (radius > x || err > y) err += ++x * 2 + 1;
+                } while (x < 0);
+            }
+            else
+            {
+                PutPixel(ptr, centerX, centerY, c);
+            }
+        }
+    }
+    
+    public static void FillCircle(int centerX, int centerY, int radius)
+    {
+        if (radius < 0 || centerX < -radius || centerY < -radius)
+        {
+            return;
+        }
+
+        var c = _drawColor;
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            if (radius > 0)
+            {
+                int x0 = 0;
+                int y0 = radius;
+                int d = 3 - 2 * radius;
+
+                while (y0 >= x0)
+                {
+                    HLine(ptr,centerX - y0, centerX + y0, centerY - x0, c);
+
+                    if (x0 > 0)
+                    {
+                        HLine(ptr, centerX - y0, centerX + y0, centerY + x0, c);
+                    }
+
+                    if (d < 0)
+                    {
+                        d += 4 * x0++ + 6;
+                    }
+                    else
+                    {
+                        if (x0 != y0)
+                        {
+                            HLine(ptr,centerX - x0, centerX + x0, centerY - y0, c);
+                            HLine(ptr,centerX - x0, centerX + x0, centerY + y0, c);
+                        }
+
+                        d += 4 * (x0++ - y0--) + 10;
+                    }
+                }
+            }
+            else
+            {
+                PutPixel(ptr, centerX, centerY, c);
+            }
+        }
+    }
+
+    public static void Triangle(int x1, int y1, int x2, int y2, int x3, int y3)
+    {
+        Line(x1, y1, x2, y2);
+        Line(x2, y2, x3, y3);
+        Line(x3, y3, x1, y1);
+    }
+
+    internal static void Flip()
+    {
+        fixed (void* ptr = _targetPixmap.PixelBuffer)
+        {
+            _ = SDL_UpdateTexture(_state.CanvasTexture, null, ptr, _pitch);
+        }
+        
+        _ = SDL_RenderTexture(_state.Renderer, _state.CanvasTexture, null, null);
+        _ = SDL_RenderPresent(_state.Renderer);
+    }
+
+    private static Rectangle _clipRectangle;
+    private static bool _clipActive;
+
+}

@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDL", "SDL-cs\src\cs\production\SDL\SDL.csproj", "{37B7EE0A-E6C8-497C-99E5-7E771EC697CB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlitGS.Engine", "BlitGS.Engine\BlitGS.Engine.csproj", "{A4F768F8-81DF-4B12-BA58-E7B5AA9ED079}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlitGS.Demo", "BlitGS.Demo\BlitGS.Demo.csproj", "{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{37B7EE0A-E6C8-497C-99E5-7E771EC697CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37B7EE0A-E6C8-497C-99E5-7E771EC697CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37B7EE0A-E6C8-497C-99E5-7E771EC697CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37B7EE0A-E6C8-497C-99E5-7E771EC697CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4F768F8-81DF-4B12-BA58-E7B5AA9ED079}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4F768F8-81DF-4B12-BA58-E7B5AA9ED079}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4F768F8-81DF-4B12-BA58-E7B5AA9ED079}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4F768F8-81DF-4B12-BA58-E7B5AA9ED079}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
