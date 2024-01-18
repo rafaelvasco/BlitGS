@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlitGS.Engine", "BlitGS.Eng
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlitGS.Demo", "BlitGS.Demo\BlitGS.Demo.csproj", "{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StbImageSharp", "StbImageSharp\src\StbImageSharp.csproj", "{31287AE2-9B83-400A-9C18-2FF547188674}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StbImageWriteSharp", "StbImageWriteSharp\src\StbImageWriteSharp.csproj", "{FAB401FE-2467-43B5-9654-A6DDF5CF755C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,13 @@ Global
 		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3BE5E2D-8D0A-407F-97CB-0982CFB87B14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31287AE2-9B83-400A-9C18-2FF547188674}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31287AE2-9B83-400A-9C18-2FF547188674}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31287AE2-9B83-400A-9C18-2FF547188674}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31287AE2-9B83-400A-9C18-2FF547188674}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAB401FE-2467-43B5-9654-A6DDF5CF755C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAB401FE-2467-43B5-9654-A6DDF5CF755C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAB401FE-2467-43B5-9654-A6DDF5CF755C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAB401FE-2467-43B5-9654-A6DDF5CF755C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -11,4 +11,17 @@
       <ProjectReference Include="..\BlitGS.Engine\BlitGS.Engine.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Assets\Images\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Assets\assets.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Assets\Images\sonic.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

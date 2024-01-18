@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using static bottlenoselabs.SDL;
 
@@ -16,8 +17,6 @@ public static unsafe class Canvas
     private static Pixmap _targetPixmap = null!;
 
     private static uint _drawColor;
-    private static int _pixelCount;
-    private static int _pitch;
     
     private struct State
     {
@@ -31,13 +30,9 @@ public static unsafe class Canvas
     {
         Width = config.CanvasWidth;
         Height = config.CanvasHeight;
-
+        
         StretchMode = config.StretchMode;
 
-        _pixelCount = Width * Height;
-
-        _pitch = Width * sizeof(uint);
-        
         _canvasPixmap = new Pixmap(Width, Height);
 
         _targetPixmap = _canvasPixmap;
@@ -46,8 +41,10 @@ public static unsafe class Canvas
 
         _clipRectangle = new Rectangle(0, 0, Width, Height);
         
-        _state.Renderer = SDL_CreateRenderer(Platform.WindowPtr, null,
-            (uint)(SDL_RendererFlags.SDL_RENDERER_ACCELERATED | SDL_RendererFlags.SDL_RENDERER_PRESENTVSYNC));
+        const uint rendererFlags = (uint)(SDL_RendererFlags.SDL_RENDERER_ACCELERATED |
+                                     SDL_RendererFlags.SDL_RENDERER_PRESENTVSYNC);
+        
+        _state.Renderer = SDL_CreateRenderer(Platform.WindowPtr, null, rendererFlags);
 
         _state.CanvasTexture = SDL_CreateTexture(
             _state.Renderer,
@@ -68,7 +65,9 @@ public static unsafe class Canvas
 
         _ = SDL_SetRenderLogicalPresentation(_state.Renderer, Width, Height,
             sdlRenderLogicalMode,
-            SDL_ScaleMode.SDL_SCALEMODE_NEAREST);    
+            SDL_ScaleMode.SDL_SCALEMODE_NEAREST);
+
+        _ = SDL_SetTextureScaleMode(_state.CanvasTexture, SDL_ScaleMode.SDL_SCALEMODE_NEAREST);
     }
 
     internal static void Terminate()
@@ -78,9 +77,16 @@ public static unsafe class Canvas
     }
     
 
-    public static void Target(Pixmap? target = null)
+    public static void BeginTarget(Pixmap target)
     {
-        _targetPixmap = target ?? _canvasPixmap;
+        _targetPixmap = target;
+        _clipRectangle = new Rectangle(0, 0, target.Width, target.Height);
+    }
+
+    public static void EndTarget()
+    {
+        _targetPixmap = _canvasPixmap;
+        _clipRectangle = new Rectangle(0, 0, _canvasPixmap.Width, _canvasPixmap.Height);
     }
 
     public static void Color(uint color)
@@ -90,29 +96,27 @@ public static unsafe class Canvas
 
     public static void Clip(Rectangle? rect = null)
     {
-        _clipRectangle = rect ?? Rectangle.Empty;
-        _clipActive = ! Rectangle.IsNullOrEmpty(rect);
+        _clipRectangle = rect ?? new Rectangle(0, 0, _targetPixmap.Width, _targetPixmap.Height);
+
+        if (_clipRectangle.Width > _targetPixmap.Width || _clipRectangle.Height > _targetPixmap.Height)
+        {
+            _clipRectangle = new Rectangle(0, 0, _targetPixmap.Width, _targetPixmap.Height);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PutPixel(uint* buffer, int x, int y, uint c)
     {
-        int idx = x + y * Width;
-
-        if (!_clipActive)
-        {
-            *(buffer + idx) = c;
-            return;
-        }
-
         if (
             x >= _clipRectangle.Left && 
-            x <= _clipRectangle.Right && 
-            y >= _clipRectangle.Y && 
-            y <= _clipRectangle.Bottom)
+            x < _clipRectangle.Right && 
+            y >= _clipRectangle.Top && 
+            y < _clipRectangle.Bottom)
         {
+            int idx = x + y * _targetPixmap.Width;
             *(buffer + idx) = c;
         }
+        
     }
 
     public static void Pixel(int x, int y)
@@ -129,7 +133,7 @@ public static unsafe class Canvas
     {
         fixed (uint* ptr = _targetPixmap.PixelBuffer)
         {
-            int idx = x + y * Width;
+            int idx = x + y * _targetPixmap.Width;
             
             return *(ptr + idx);
         }
@@ -141,7 +145,7 @@ public static unsafe class Canvas
         
         fixed (uint* ptr = _targetPixmap.PixelBuffer)
         {
-            for (int i = 0; i < _pixelCount; ++i)
+            for (int i = 0; i < _targetPixmap.PixelCount; ++i)
             {
                 *(ptr + i) = c;
             }
@@ -304,11 +308,136 @@ public static unsafe class Canvas
         Line(x3, y3, x1, y1);
     }
 
+    public static void Blit(Pixmap pixmap, int x, int y)
+    {
+        int x2 = x + pixmap.Width;
+        int y2 = y + pixmap.Height;
+        int pixW = pixmap.Width;
+        
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        fixed (uint* srcPtr = pixmap.PixelBuffer)    
+        {
+            for (int px = x; px < x2; ++px)
+            {
+                for (int py = y; py < y2; ++py)
+                {
+                    int srcIdx = (px - x) + (py - y) * pixW;
+                    uint c = *(srcPtr + srcIdx);
+                    
+                    PutPixel(ptr, px, py, c);
+                }
+            }
+        }
+    }
+
+    public static void BlitEx(
+        Pixmap pixmap,
+        int x, int y,
+        Rectangle region = default,
+        int width = 0,
+        int height = 0,
+        bool flip = false
+    )
+    {
+        if (region.IsEmpty)
+        {
+            region = new Rectangle(0, 0, pixmap.Width, pixmap.Height);
+        }
+
+        if (width <= 0 || height <= 0)
+        {
+            width = region.Width;
+            height = region.Height;
+        }
+
+        int x2 = x + width;
+        int y2 = y + height;
+        
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        fixed (uint* srcPtr = pixmap.PixelBuffer)
+        {
+            float factorW = (float)width / region.Width;
+            float factorH = (float)height / region.Height;
+
+            if (!flip)
+            {
+                for (int px = x; px < x2; ++px)
+                {
+                    for (int py = y; py < y2; ++py)
+                    {
+                        int srcIdx = (region.X + (int)((px - x) / factorW)) +
+                                     (region.Y + (int)((py - y) / factorH)) * pixmap.Width;
+
+                        uint c = *(srcPtr + srcIdx);
+                        
+                        PutPixel(ptr, px, py, c);
+                        
+                    }
+                }
+            }
+            else
+            {
+                int startingPixel = region.Right - 1;
+                
+                for (int px = x; px < x2; ++px)
+                {
+                    for (int py = y; py < y2; ++py)
+                    {
+                        if (px == x2)
+                        {
+                            Console.Write("");
+                        }
+                        
+                        int srcIdx = (startingPixel - (int)((px - x) / factorW)) +
+                                     (region.Top + (int)((py - y) / factorH)) * pixmap.Width;
+            
+                        uint c = *(srcPtr + srcIdx);
+                        
+                        PutPixel(ptr, px, py, c);
+                    }
+                }
+                
+            }
+        }
+    }
+
+    public static void TakeScreenshot(string file)
+    {
+        var renderer = _state.Renderer;
+    
+        SDL_Rect viewport;
+
+        _ = SDL_GetRenderViewport(renderer, &viewport);
+    
+        var screenSurface = SDL_CreateSurface(viewport.w, viewport.h, (uint)SDL_PixelFormatEnum.SDL_PIXELFORMAT_ABGR8888);
+    
+        if (screenSurface == null)
+        {
+            Console.WriteLine($"Canvas::TakeScreenshot: Could not create surface: {SDL_GetError()}");
+            return;
+        }
+    
+        if (SDL_RenderReadPixels(renderer, null, screenSurface->format->format, screenSurface->pixels, screenSurface->pitch) != 0)
+        {
+            Console.WriteLine($"Canvas::TakeScreenshot: Could not read pixels from Renderer: {SDL_GetError()}");
+            SDL_free(screenSurface);
+            return;
+        }
+
+        using var stream = File.OpenWrite(file);
+        
+        ImageIO.Save(screenSurface->pixels, screenSurface->w, screenSurface->h, stream);
+        
+        SDL_free(screenSurface);
+    }
+    
+    
+
     internal static void Flip()
     {
-        fixed (void* ptr = _targetPixmap.PixelBuffer)
+        fixed (void* ptr = _canvasPixmap.PixelBuffer)
         {
-            _ = SDL_UpdateTexture(_state.CanvasTexture, null, ptr, _pitch);
+            _ = SDL_UpdateTexture(_state.CanvasTexture, null, ptr, _canvasPixmap.Pitch);
         }
         
         _ = SDL_RenderTexture(_state.Renderer, _state.CanvasTexture, null, null);
@@ -316,6 +445,5 @@ public static unsafe class Canvas
     }
 
     private static Rectangle _clipRectangle;
-    private static bool _clipActive;
 
 }

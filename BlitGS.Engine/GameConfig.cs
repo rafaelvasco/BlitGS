@@ -10,6 +10,8 @@ public struct GameConfig
     
     public int CanvasHeight { get; init; }
     
+    public bool StartFullscreen { get; init; }
+    
     public StretchMode StretchMode { get; init; }
     
     public required string Title { get; init; }

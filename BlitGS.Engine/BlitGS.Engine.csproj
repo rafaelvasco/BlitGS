@@ -8,6 +8,12 @@
 
     <ItemGroup>
       <ProjectReference Include="..\SDL-cs\src\cs\production\SDL\SDL.csproj" />
+      <ProjectReference Include="..\StbImageSharp\src\StbImageSharp.csproj" />
+      <ProjectReference Include="..\StbImageWriteSharp\src\StbImageWriteSharp.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MemoryPack" Version="1.10.0" />
     </ItemGroup>
 
 </Project>

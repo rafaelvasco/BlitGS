@@ -1,3 +1,9 @@
 [submodule "SDL-cs"]
 	path = SDL-cs
 	url = git@github.com:rafaelvasco/SDL-cs.git
+[submodule "StbImageSharp"]
+	path = StbImageSharp
+	url = https://github.com/StbSharp/StbImageSharp.git
+[submodule "StbImageWriteSharp"]
+	path = StbImageWriteSharp
+	url = https://github.com/StbSharp/StbImageWriteSharp.git

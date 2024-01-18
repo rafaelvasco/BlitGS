@@ -1,51 +1,118 @@
 namespace BlitGS.Engine;
 
+public delegate void GameEvent();
+
 public abstract class Game : Disposable
 {
-    protected Game(GameConfig config)
+
+    public static event GameEvent? OnMouseEnter;
+    public static event GameEvent? OnMouseExit;
+    
+    public static bool HideMouse
     {
-        Platform.Init(config);
-        Canvas.Init(config);
-        
-        Platform.OnQuit += PlatformOnOnQuit;
+        get => _instance._hideMouse;
+        set
+        {
+            if (value != _instance._hideMouse)
+            {
+                _instance._hideMouse = value;
+                Platform.ShowCursor(value);
+            }
+        }
     }
 
-    private void PlatformOnOnQuit()
+    public static (int Width, int Height) WindowSize
     {
-        Quit();
+        get => Platform.GetWindowSize();
+        set => Platform.SetWindowSize(value.Width, value.Height);
     }
+
+    public static string Title
+    {
+        get => Platform.GetWindowTitle();
+        set => Platform.SetWindowTitle(value);
+    }
+
+    public static bool Fullscreen
+    {
+        get => Platform.IsFullscreen();
+        set
+        {
+            if (Platform.IsFullscreen() == value)
+            {
+                return;
+            }
+            
+            Platform.SetFullscreen(value);
+        }
+    }
+    
+    private static Game _instance = null!;
+    
+    protected Game(GameConfig config)
+    {
+        _instance = this;
+        
+        Platform.Init(config);
+        Content.Init();
+        Canvas.Init(config);
+        GameLoop.Init();
+        
+        Keyboard.Init();
+        
+        Platform.OnQuit = PlatformOnOnQuit;
+        Platform.OnWindowMinimized = OnWindowMinimized;
+        Platform.OnWindowRestored = OnWindowRestored;
+        Platform.OnWindowResized = OnWindowResized;
+        Platform.OnWindowMouseEntered = OnWindowMouseEntered;
+        Platform.OnWindowMouseExited = OnWindowMouseExited;
+    }
+
+   
 
     public void Start()
     {
         Load();
-        Frame();
-        Canvas.Flip();
-        
+        GameLoop.Start(this);
         Platform.ShowWindow();
-        
         Tick();
     }
 
-    public void Quit()
+    public static void Quit()
     {
-        _running = false;
+        GameLoop.Terminate();
     }
 
-    protected abstract void Frame();
+    internal void TickUpdate(float dt)
+    {
+        Update(dt);
+    }
 
-    protected virtual void Load(){}
+    internal void TickFixedUpdate(float dt)
+    {
+        FixedUpdate(dt);
+    }
+
+    internal void TickFrame(float dt)
+    {
+        Frame(dt);
+    }
+
+    protected abstract void Update(float dt);
+
+    protected abstract void FixedUpdate(float dt);
+
+    protected abstract void Frame(float dt);
+
+    protected abstract void Load();
 
     private void Tick()
     {
         while (true)
         {
-            Platform.ProcessEvents();
-
-            Frame();
+            GameLoop.Tick(this);
             
-            Canvas.Flip();
-            
-            if (!_running)
+            if (!GameLoop.Running)
             {
                 break;
             }
@@ -57,6 +124,35 @@ public abstract class Game : Disposable
         Canvas.Terminate();
         Platform.Terminate();
     }
+    
+    private static void OnWindowMouseExited()
+    {
+        OnMouseExit?.Invoke();
+    }
 
-    private bool _running = true;
+    private static void OnWindowMouseEntered()
+    {
+        OnMouseEnter?.Invoke();
+    }
+
+    private static void OnWindowResized((int Width, int Height) size)
+    {
+    }
+
+    private static void OnWindowRestored()
+    {
+        GameLoop.IsActive = true;
+    }
+
+    private static void OnWindowMinimized()
+    {
+        GameLoop.IsActive = false;
+    }
+
+    private static void PlatformOnOnQuit()
+    {
+        Quit();
+    }
+
+    private bool _hideMouse;
 }

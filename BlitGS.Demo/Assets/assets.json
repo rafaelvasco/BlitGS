@@ -1,0 +1,8 @@
+{
+  "Images" : {
+    "sonic": {
+      "Id": "sonic",
+      "Path": "Images/sonic.png"
+    }
+  }
+}

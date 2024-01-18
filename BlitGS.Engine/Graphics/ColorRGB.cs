@@ -7,6 +7,7 @@ namespace BlitGS.Engine;
 public struct ColorRGB(byte r, byte g, byte b) : IEquatable<ColorRGB>
 {
     public const uint Black = 4278190080U;
+    public const uint White = 4294967295U;
     public const uint DarkBlue = 4283640605U;
     public const uint Wine = 4283639166U;
     public const uint MiddleGreen = 4283533056U;
@@ -22,7 +23,6 @@ public struct ColorRGB(byte r, byte g, byte b) : IEquatable<ColorRGB>
     public const uint Lavander = 4288444035U;
     public const uint Pink = 4289230847U;
     public const uint Sand = 4289383679U;
-    
     
     public byte R
     {
