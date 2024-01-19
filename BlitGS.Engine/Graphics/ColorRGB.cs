@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace BlitGS.Engine;
@@ -6,6 +7,48 @@ namespace BlitGS.Engine;
 [StructLayout(LayoutKind.Sequential)]
 public struct ColorRGB(byte r, byte g, byte b) : IEquatable<ColorRGB>
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte ExtractR(uint color) => (byte)color;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte ExtractG(uint color)
+    {
+        unchecked
+        {
+            return (byte)(color >> 8);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte ExtractB(uint color)
+    {
+        unchecked
+        {
+            return (byte)(color >> 16);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint Build(byte r, byte g, byte b)
+    {
+        unchecked
+        {
+            return (uint)(0xFF000000 | (b << 16) | (uint)(g << 8) | r);
+        }
+    }
+
+    public static uint Build(float r, float g, float b)
+    {
+        unchecked
+        {
+            var byteR = (byte)(r * 255f);
+            var byteG = (byte)(g * 255f);
+            var byteB = (byte)(b * 255f);
+
+            return (uint)(0xFF000000 | (byteB << 16) | (uint)(byteG << 8) | byteR);
+        }
+    }
+    
     public const uint Black = 4278190080U;
     public const uint White = 4294967295U;
     public const uint DarkBlue = 4283640605U;
@@ -26,37 +69,19 @@ public struct ColorRGB(byte r, byte g, byte b) : IEquatable<ColorRGB>
     
     public byte R
     {
-        get
-        {
-            unchecked
-            {
-                return (byte)_abgr;
-            }
-        }
+        get => ExtractR(_abgr);
         set => _abgr = (_abgr & 0xffffff00) | value;
     }
     
     public byte G
     {
-        get
-        {
-            unchecked
-            {
-                return (byte)(_abgr >> 8);
-            }
-        }
+        get => ExtractG(_abgr);
         set => _abgr = (_abgr & 0xffff00ff) | (uint)(value << 8);
     }
     
     public byte B
     {
-        get
-        {
-            unchecked
-            {
-                return (byte)(_abgr >> 16);
-            }
-        }
+        get => ExtractB(_abgr);
         set => _abgr = (_abgr & 0xff00ffff) | (uint)(value << 16);
     }
     

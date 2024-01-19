@@ -94,9 +94,14 @@ public static unsafe class Canvas
         _drawColor = color;
     }
 
-    public static void Clip(Rectangle? rect = null)
+    public static void Clip(int x=0, int y=0, int w=0, int h=0)
     {
-        _clipRectangle = rect ?? new Rectangle(0, 0, _targetPixmap.Width, _targetPixmap.Height);
+        _clipRectangle = new Rectangle(x, y, w, h);
+
+        if (_clipRectangle.IsEmpty)
+        {
+            _clipRectangle = new Rectangle(0, 0, _targetPixmap.Width, _targetPixmap.Height);
+        }
 
         if (_clipRectangle.Width > _targetPixmap.Width || _clipRectangle.Height > _targetPixmap.Height)
         {
@@ -139,21 +144,18 @@ public static unsafe class Canvas
         }
     }
 
-    public static void Fill()
-    {
-        var c = _drawColor;
-        
-        fixed (uint* ptr = _targetPixmap.PixelBuffer)
-        {
-            for (int i = 0; i < _targetPixmap.PixelCount; ++i)
-            {
-                *(ptr + i) = c;
-            }
-        }
-    }
 
-    public static void FillRect(int x, int y, int w, int h)
+
+    public static void FillRect(int x=0, int y=0, int w=0, int h=0)
     {
+        if (w == 0 || h == 0)
+        {
+            x = 0;
+            y = 0;
+            w = Width;
+            h = Height;
+        }
+        
         var c = _drawColor;
         fixed (uint* ptr = _targetPixmap.PixelBuffer)
         {
@@ -400,6 +402,374 @@ public static unsafe class Canvas
             }
         }
     }
+
+    #region :::::::::::::::::::::::::::: EFFECTS ::::::::::::::::::::::::::::::::::::::
+
+    public enum PixelColorOp
+    {
+        Set,
+        Add,
+        Mult
+    }
+
+    public enum ValueFilterChannel
+    {
+        All,
+        Red,
+        Green,
+        Blue
+    }
+
+    public static void ColorFilter(float value, PixelColorOp op, ValueFilterChannel channel = ValueFilterChannel.All)
+    {
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            int px = _clipRectangle.Left;
+            int px2 = _clipRectangle.Right;
+            int py = _clipRectangle.Top;
+            int py2 = _clipRectangle.Bottom;
+            
+            int columns = px2 - px;
+            int lines = py2 - py;
+            int line = 0;
+            
+            int index = px + py * Width;
+
+            switch (op)         
+            {
+                case PixelColorOp.Set:
+                    while (line < lines)
+                    {
+                        LineValueSet(ptr + index, columns, value, channel);
+                        index += Width;
+                        ++line;
+                    }
+                    break;
+                case PixelColorOp.Add:
+                    while (line < lines)
+                    {
+                        LineValueAdd(ptr + index, columns, value, channel);
+                        index += Width;
+                        ++line;
+                    }
+                    break;
+                case PixelColorOp.Mult:
+                    while (line < lines)
+                    {
+                        LineValueMult(ptr + index, columns, value, channel);
+                        index += Width;
+                        ++line;
+                    }
+                    break;
+            }
+        }
+    }
+
+    public static void ColorFilter(ColorRGB color, PixelColorOp op)
+    {
+        fixed (uint* ptr = _targetPixmap.PixelBuffer)
+        {
+            int px = _clipRectangle.Left;
+            int px2 = _clipRectangle.Right;
+            int py = _clipRectangle.Top;
+            int py2 = _clipRectangle.Bottom;
+            
+            int columns = px2 - px;
+            int lines = py2 - py;
+            int line = 0;
+            
+            int index = px + py * Width;
+
+            switch (op)         
+            {
+                case PixelColorOp.Set:
+                    while (line < lines)
+                    {
+                        LineColorSet(ptr + index, columns, ref color);
+                        index += Width;
+                        ++line;
+                    }
+                    break;
+                case PixelColorOp.Add:
+                    while (line < lines)
+                    {
+                        LineColorAdd(ptr + index, columns, ref color);
+                        index += Width;
+                        ++line;
+                    }
+                    break;
+                case PixelColorOp.Mult:
+                    while (line < lines)
+                    {
+                        LineColorMult(ptr + index, columns, ref color);
+                        index += Width;
+                        ++line;
+                    }
+                    break;
+            }
+        }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LineColorSet(uint* linePtr, int length, ref ColorRGB color)
+    {
+        for (int i = 0; i < length; ++i)
+        {
+            *(linePtr + i) = color;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LineColorAdd(uint* linePtr, int length, ref ColorRGB color)
+    {
+        var r = color.R;
+        var g = color.G;
+        var b = color.B;
+        
+        for (int i = 0; i < length; ++i)
+        {
+            var srcCol = *(linePtr + i);
+            
+            var srcR = ColorRGB.ExtractR(srcCol);
+            var srcG = ColorRGB.ExtractG(srcCol);
+            var srcB = ColorRGB.ExtractB(srcCol);
+
+            var addR = Math.Min(srcR + r, 255);
+            var addG = Math.Min(srcG + g, 255);
+            var addB = Math.Min(srcB + b, 255);
+            
+            *(linePtr + i) = ColorRGB.Build(addR, addG, addB);
+        }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LineColorMult(uint* linePtr, int length, ref ColorRGB color)
+    {
+        var r = color.R / 255f;
+        var g = color.G / 255f;
+        var b = color.B / 255f;
+        
+        for (int i = 0; i < length; ++i)
+        {
+            var srcCol = *(linePtr + i);
+
+            var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+            var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+            var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+            var mR = Math.Min(srcR * r, 1.0f);
+            var mG = Math.Min(srcG * g, 1.0f);
+            var mB = Math.Min(srcB * b, 1.0f);
+
+            *(linePtr + i) = ColorRGB.Build(mR, mG, mB);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LineValueSet(uint* linePtr, int length, float value, ValueFilterChannel channel)
+    {
+        uint* pix;
+        byte currentC1;
+        byte currentC2;
+        
+        var colValue = (byte)(MathUtils.Clamp(value, 0f, 1f) * 255);
+        
+        switch (channel)
+        {
+            case ValueFilterChannel.All:
+
+                for (int i = 0; i < length; ++i)
+                {
+                    *(linePtr + i) = ColorRGB.Build(colValue, colValue, colValue);
+                }
+                
+                break;
+            case ValueFilterChannel.Red:
+
+                for (int i = 0; i < length; ++i)
+                {
+                    pix = linePtr + i;
+                    currentC1 = ColorRGB.ExtractG(*pix);
+                    currentC2 = ColorRGB.ExtractB(*pix);
+                    *(pix) = ColorRGB.Build(colValue, currentC1, currentC2);
+                }
+                
+                break;
+            case ValueFilterChannel.Green:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    pix = linePtr + i;
+                    currentC1 = ColorRGB.ExtractR(*pix);
+                    currentC2 = ColorRGB.ExtractB(*pix);
+                    *(pix) = ColorRGB.Build(currentC1, colValue, currentC2);
+                }
+                
+                break;
+            case ValueFilterChannel.Blue:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    pix = linePtr + i;
+                    currentC1 = ColorRGB.ExtractR(*pix);
+                    currentC2 = ColorRGB.ExtractG(*pix);
+                    *(pix) = ColorRGB.Build(currentC1, currentC2, colValue);
+                }
+                
+                break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LineValueAdd(uint* linePtr, int length, float value, ValueFilterChannel channel)
+    {
+        switch (channel)
+        {
+            case ValueFilterChannel.All:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mR = MathUtils.Clamp(srcR + value, 0f, 1f);
+                    var mG = MathUtils.Clamp(srcG + value, 0f, 1f);
+                    var mB = MathUtils.Clamp(srcB + value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(mR, mG, mB);
+                }
+                
+                break;
+            case ValueFilterChannel.Red:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mR = MathUtils.Clamp(srcR + value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(mR, srcG, srcB);
+                }
+                break;
+            case ValueFilterChannel.Green:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mG = MathUtils.Clamp(srcG + value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(srcR, mG, srcB);
+                }
+                break;
+            case ValueFilterChannel.Blue:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mB = MathUtils.Clamp(srcB + value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(srcR, srcG, mB);
+                }
+                
+                break;
+        }
+        
+       
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LineValueMult(uint* linePtr, int length, float value, ValueFilterChannel channel)
+    {
+
+        switch (channel)
+        {
+            case ValueFilterChannel.All:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mR = MathUtils.Clamp(srcR * value, 0f, 1f);
+                    var mG = MathUtils.Clamp(srcG * value, 0f, 1f);
+                    var mB = MathUtils.Clamp(srcB * value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(mR, mG, mB);
+                }
+                
+                break;
+            case ValueFilterChannel.Red:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mR = MathUtils.Clamp(srcR * value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(mR, srcG, srcB);
+                }
+                
+                break;
+            case ValueFilterChannel.Green:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mG = MathUtils.Clamp(srcG * value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(srcR, mG, srcB);
+                }
+                
+                break;
+            case ValueFilterChannel.Blue:
+                
+                for (int i = 0; i < length; ++i)
+                {
+                    var srcCol = *(linePtr + i);
+
+                    var srcR = ColorRGB.ExtractR(srcCol) / 255f;
+                    var srcG = ColorRGB.ExtractG(srcCol) / 255f;
+                    var srcB = ColorRGB.ExtractB(srcCol) / 255f;
+
+                    var mB = MathUtils.Clamp(srcB * value, 0f, 1f);
+
+                    *(linePtr + i) = ColorRGB.Build(srcR, srcG, mB);
+                }
+                
+                break;
+        }
+    }
+
+    #endregion
 
     public static void TakeScreenshot(string file)
     {

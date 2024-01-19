@@ -186,8 +186,10 @@ public class Demo(GameConfig config) : Game(config)
 
     protected override void Frame(float dt)
     {
+        Canvas.Clip(50, 50, Canvas.Width - 100, Canvas.Height - 100);
+        
         Canvas.Color(ColorRGB.SkyBlue);
-        Canvas.Fill();
+        Canvas.FillRect();
 
         Canvas.BlitEx(sonic, 0, 0, width: 128, height: 128, flip: true);
         Canvas.BlitEx(sonic, 130, 0, width: 64, height: 64);
@@ -204,6 +206,7 @@ public class Demo(GameConfig config) : Game(config)
         
         Canvas.BlitEx(blitPixmap, blitX , blitY, region: new Rectangle(srcX, srcY, 100, 100), flip: flip);
         
-        
+        //Canvas.ColorFilter(ColorRGB.Wine, Canvas.PixelColorOp.Set);
+        Canvas.ColorFilter(1f, Canvas.PixelColorOp.Set, Canvas.ValueFilterChannel.Blue);
     }
 }
