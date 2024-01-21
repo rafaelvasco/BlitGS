@@ -4,7 +4,6 @@ public delegate void GameEvent();
 
 public abstract class Game : Disposable
 {
-
     public static event GameEvent? OnMouseEnter;
     public static event GameEvent? OnMouseExit;
     
@@ -54,11 +53,13 @@ public abstract class Game : Disposable
         _instance = this;
         
         Platform.Init(config);
+        
         Content.Init();
         Canvas.Init(config);
         GameLoop.Init();
         
         Keyboard.Init();
+        Gamepad.Init();
         
         Platform.OnQuit = PlatformOnOnQuit;
         Platform.OnWindowMinimized = OnWindowMinimized;
@@ -67,8 +68,6 @@ public abstract class Game : Disposable
         Platform.OnWindowMouseEntered = OnWindowMouseEntered;
         Platform.OnWindowMouseExited = OnWindowMouseExited;
     }
-
-   
 
     public void Start()
     {

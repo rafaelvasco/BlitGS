@@ -13,18 +13,7 @@ public static unsafe class Canvas
     
     public static StretchMode StretchMode { get; private set; }
 
-    private static Pixmap _canvasPixmap = null!;
-    private static Pixmap _targetPixmap = null!;
 
-    private static uint _drawColor;
-    
-    private struct State
-    {
-        public SDL_Renderer* Renderer;
-        public SDL_Texture* CanvasTexture;
-    }
-
-    private static State _state;
 
     internal static void Init(GameConfig config)
     {
@@ -385,11 +374,6 @@ public static unsafe class Canvas
                 {
                     for (int py = y; py < y2; ++py)
                     {
-                        if (px == x2)
-                        {
-                            Console.Write("");
-                        }
-                        
                         int srcIdx = (startingPixel - (int)((px - x) / factorW)) +
                                      (region.Top + (int)((py - y) / factorH)) * pixmap.Width;
             
@@ -800,8 +784,6 @@ public static unsafe class Canvas
         
         SDL_free(screenSurface);
     }
-    
-    
 
     internal static void Flip()
     {
@@ -814,6 +796,19 @@ public static unsafe class Canvas
         _ = SDL_RenderPresent(_state.Renderer);
     }
 
+    
+    private static Pixmap _canvasPixmap = null!;
+    private static Pixmap _targetPixmap = null!;
+
+    private static uint _drawColor;
+    
+    private struct State
+    {
+        public SDL_Renderer* Renderer;
+        public SDL_Texture* CanvasTexture;
+    }
+
+    private static State _state;
     private static Rectangle _clipRectangle;
 
 }

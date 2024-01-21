@@ -5,26 +5,23 @@ namespace BlitGS.Engine;
 
 internal static unsafe partial class Platform
 {
-    public static Action OnQuit;
+    public static Action OnQuit = null!;
     
-    private struct PlatformState
-    {
-        public SDL_Window* Window;
-    }
-
-    private static PlatformState _state;
-
     internal static void Init(GameConfig gameConfig)
     {
-        const uint initFlags = (uint)(SDL_InitFlags.SDL_INIT_VIDEO | SDL_InitFlags.SDL_INIT_GAMEPAD);
+        const uint initFlags = (uint)(SDL_InitFlags.SDL_INIT_VIDEO);
         
         var errorCode = SDL_Init(initFlags);
         CheckSDLError(errorCode);
         CreateWindow(gameConfig);
+        
+        InitKeyboard();
+        InitGamepad();
     }
 
     internal static void Terminate()
     {
+        SDL_QuitSubSystem((uint)SDL_InitFlags.SDL_INIT_GAMEPAD);
         SDL_DestroyWindow(_state.Window);
         SDL_Quit();
     }
@@ -40,6 +37,13 @@ internal static unsafe partial class Platform
                 (uint) SDL_EventType.SDL_EVENT_KEY_UP:
                 ProcessKeyEvent(e);
                 break;
+            
+            case  
+                (uint) SDL_EventType.SDL_EVENT_GAMEPAD_ADDED or
+                (uint) SDL_EventType.SDL_EVENT_GAMEPAD_REMOVED:
+                ProcessGamePadEvent(e);
+                break;
+            
             case 
                 (uint) SDL_EventType.SDL_EVENT_WINDOW_RESIZED or 
                 (uint) SDL_EventType.SDL_EVENT_WINDOW_RESTORED or 
@@ -84,7 +88,7 @@ internal static unsafe partial class Platform
 
     private static void TriggerOnQuit()
     {
-        OnQuit?.Invoke();
+        OnQuit.Invoke();
     }
     
     public static void CheckSDLError(int? errorCode = -1)

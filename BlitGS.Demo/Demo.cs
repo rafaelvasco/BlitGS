@@ -84,74 +84,53 @@ public class Demo(GameConfig config) : Game(config)
     
     protected override void Update(float dt)
     {
-        if (Keyboard.KeyPressed(Key.Enter))
-        {
-            Fullscreen = !Fullscreen;
-        }
-
-        if (Keyboard.KeyPressed(Key.Escape))
-        {
-            Quit();
-        }
-        
-        if (Keyboard.KeyDown(Key.Left))
-        {
-            blitX -= 2;
-            srcX -= 2;
-
-            if (srcX < 0 )
-            {
-                srcX = 100;
-            }
-        }
-        else if (Keyboard.KeyDown(Key.Right))
-        {
-            blitX += 2;
-
-            srcX += 2;
-            if (srcX > 100)
-            {
-                srcX = 0;
-            }
-        }
-        
-        if (Keyboard.KeyDown(Key.Up))
-        {
-            blitY -= 2;
-            srcY -= 2;
-
-            if (srcY < 0)
-            {
-                srcY = 100;
-            }
-        }
-        else if (Keyboard.KeyDown(Key.Down))
-        {
-            blitY += 2;
-
-            srcY += 2;
-
-            if (srcY > 100)
-            {
-                srcY = 0;
-            }
-        }
-
-        if (Keyboard.KeyPressed(Key.Space))
-        {
-            flip = !flip;
-        }
-
-        if (Keyboard.KeyPressed(Key.S))
-        {
-            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            
-            Canvas.TakeScreenshot(Path.Combine(desktopPath, "screenshot.png"));
-        }
+      
     }
 
     protected override void FixedUpdate(float dt)
     {
+        if (Gamepad.ButtonPressed(GamePadButtons.Start))
+        {
+            Fullscreen = !Fullscreen;
+        }
+
+        if (Gamepad.ButtonPressed(GamePadButtons.Back))
+        {
+            Quit();
+        }
+
+        if (Gamepad.ButtonDown(GamePadButtons.DPadLeft))
+        {
+            blitX -= 2;
+            srcX -= 2;
+        }
+
+        if (Gamepad.ButtonDown(GamePadButtons.DPadRight))
+        {
+            blitX += 2;
+            srcX += 2;
+        }
+        
+        if (Gamepad.ButtonDown(GamePadButtons.DPadUp))
+        {
+            blitY -= 2;
+            srcY -= 2;
+        }
+        
+        if (Gamepad.ButtonDown(GamePadButtons.DPadDown))
+        {
+            blitY += 2;
+            srcY += 2;
+        }
+
+        srcX = MathUtils.Wrap(srcX, 0, 100);
+        srcY = MathUtils.Wrap(srcY, 0, 100);
+
+        if (Gamepad.ButtonPressed(GamePadButtons.South))
+        {
+            flip = !flip;
+        }
+        
         for (int i = 0; i < RECTS_COUNT; ++i)
         {
             ref var rect = ref _rects[i];
@@ -180,8 +159,6 @@ public class Demo(GameConfig config) : Game(config)
                 rect.Sy *= -1;
             }
         }
-
-       
     }
 
     protected override void Frame(float dt)

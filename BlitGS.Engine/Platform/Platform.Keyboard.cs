@@ -3,7 +3,7 @@ using static bottlenoselabs.SDL;
 
 namespace BlitGS.Engine;
 
-internal static unsafe partial class Platform
+internal static partial class Platform
 {
     public static KeyEvent? KeyDown;
     public static KeyEvent? KeyUp;
@@ -11,9 +11,9 @@ internal static unsafe partial class Platform
 
     private static readonly HashSet<Key> KeyPressBuffer = new();
 
-    private static readonly Dictionary<int, Key> KeyMap;
-    
-    static Platform()
+    private static Dictionary<int, Key> KeyMap = null!;
+
+    private static void InitKeyboard()
     {
         KeyMap = new Dictionary<int, Key>()
         {
@@ -157,6 +157,7 @@ internal static unsafe partial class Platform
             { 1073742106, Key.Sleep }
         };
     }
+    
 
     public static KeyboardState GetKeyboardState()
     {
@@ -175,18 +176,18 @@ internal static unsafe partial class Platform
         }
     }
 
-    private static void ProcessTextInputEvent(SDL_Event evt)
-    {
-        if (evt.type == (uint)SDL_EventType.SDL_EVENT_TEXT_INPUT)
-        {
-            var eventText = evt.text.text;
-
-            foreach (var t in eventText)
-            {
-                TextInput?.Invoke(new TextInputEventArgs(t, ConvertKey(t)));
-            }
-        }
-    }   
+    // private static void ProcessTextInputEvent(SDL_Event evt)
+    // {
+    //     if (evt.type == (uint)SDL_EventType.SDL_EVENT_TEXT_INPUT)
+    //     {
+    //         var eventText = evt.text.text;
+    //
+    //         foreach (var t in eventText)
+    //         {
+    //             TextInput?.Invoke(new TextInputEventArgs(t, ConvertKey(t)));
+    //         }
+    //     }
+    // }   
 
     private static Key ConvertKey(int keyChar)
     {

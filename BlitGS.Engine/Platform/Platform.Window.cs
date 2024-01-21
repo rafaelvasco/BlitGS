@@ -7,11 +7,18 @@ namespace BlitGS.Engine;
 
 internal static unsafe partial class Platform
 {
-    public static Action<(int Width, int Height)> OnWindowResized;
-    public static Action OnWindowMinimized;
-    public static Action OnWindowRestored;
-    public static Action OnWindowMouseEntered;
-    public static Action OnWindowMouseExited;
+    public static Action<(int Width, int Height)> OnWindowResized = null!;
+    public static Action OnWindowMinimized = null!;
+    public static Action OnWindowRestored = null!;
+    public static Action OnWindowMouseEntered = null!;
+    public static Action OnWindowMouseExited = null!;
+    
+    private struct PlatformState
+    {
+        public SDL_Window* Window;
+    }
+
+    private static PlatformState _state;
     
     internal static SDL_Window* WindowPtr => _state.Window;
     
