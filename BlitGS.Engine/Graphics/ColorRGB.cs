@@ -48,7 +48,8 @@ public struct ColorRGB(byte r, byte g, byte b) : IEquatable<ColorRGB>
             return (uint)(0xFF000000 | (byteB << 16) | (uint)(byteG << 8) | byteR);
         }
     }
-    
+
+    public const uint Empty = 4294902015;
     public const uint Black = 4278190080U;
     public const uint White = 4294967295U;
     public const uint DarkBlue = 4283640605U;

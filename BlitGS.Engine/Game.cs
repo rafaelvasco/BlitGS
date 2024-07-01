@@ -32,6 +32,8 @@ public abstract class Game : Disposable
         set => Platform.SetWindowTitle(value);
     }
 
+    internal static ref GameConfig Config => ref _config;
+
     public static bool Fullscreen
     {
         get => Platform.IsFullscreen();
@@ -45,12 +47,16 @@ public abstract class Game : Disposable
             Platform.SetFullscreen(value);
         }
     }
+
+    protected static GameConfig _config;
     
     private static Game _instance = null!;
     
     protected Game(GameConfig config)
     {
         _instance = this;
+
+        _config = config;
         
         Platform.Init(config);
         
@@ -59,7 +65,12 @@ public abstract class Game : Disposable
         GameLoop.Init();
         
         Keyboard.Init();
-        Gamepad.Init();
+        Mouse.Init();
+
+        if (config.EnableGamepad)
+        {
+            Gamepad.Init();
+        }
         
         Platform.OnQuit = PlatformOnOnQuit;
         Platform.OnWindowMinimized = OnWindowMinimized;

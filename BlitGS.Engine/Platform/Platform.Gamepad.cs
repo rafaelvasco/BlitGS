@@ -358,5 +358,10 @@ internal static unsafe partial class Platform
     private static readonly IntPtr[] GamepadDevices = new IntPtr[Gamepad.MaxCount];
     private static readonly GamePadCapabilities[] GamepadCaps = new GamePadCapabilities[Gamepad.MaxCount];
     private static readonly Dictionary<uint, int> GamepadDeviceMap = new();
-    private static readonly GamePadState[] GamepadStates = new GamePadState[Gamepad.MaxCount];
+
+    private static readonly GamePadState[] GamepadStates =
+    [
+        new GamePadState(),
+        new GamePadState()
+    ];
 }

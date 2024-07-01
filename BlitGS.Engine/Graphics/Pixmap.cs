@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 
 namespace BlitGS.Engine;
 
@@ -13,22 +13,11 @@ public class Pixmap : Asset
         Pitch = width * sizeof(uint);
     }
     
-    public Pixmap(IReadOnlyList<byte> data, int width, int height)
+    public Pixmap(ReadOnlySpan<byte> data, int width, int height)
     {
         PixelBuffer = new uint[width * height];
 
-        var sourceBufferLength = data.Count;
-
-        var targetBufferIdx = 0;
-        
-        for (var i = 0; i < sourceBufferLength; i+=4)
-        {
-            byte r = data[i];
-            byte g = data[i + 1];
-            byte b = data[i + 2];
-
-            PixelBuffer[targetBufferIdx++] = (uint)(0xFF000000 | (b << 16) | (uint)(g << 8) | r);
-        }
+        SetData(data);
         
         Width = width;
         Height = height;
@@ -36,6 +25,31 @@ public class Pixmap : Asset
         Pitch = width * sizeof(uint);
     }
 
+    public void SetData(ReadOnlySpan<byte> pixels)
+    {
+        if (pixels.Length > PixelBuffer.Length * 4)
+        {
+            BlitException.Throw("Pixmap::SetData : Pixel buffer bigger than internal buffer");
+            return;
+        }
+        
+        var sourceBufferLength = pixels.Length;
+
+        var targetBufferIdx = 0;
+
+        unchecked
+        {
+            for (var i = 0; i < sourceBufferLength; i+=4)
+            {
+                byte r = pixels[i];
+                byte g = pixels[i + 1];
+                byte b = pixels[i + 2];
+
+                PixelBuffer[targetBufferIdx++] = (uint)(0xFF000000 | (b << 16) | (uint)(g << 8) | r);
+            }
+        }
+    }
+    
     public uint[] PixelBuffer { get; }
 
     public int Width { get; }
@@ -45,4 +59,6 @@ public class Pixmap : Asset
     public int PixelCount { get; }
 
     public int Pitch { get; }
+
+   
 }

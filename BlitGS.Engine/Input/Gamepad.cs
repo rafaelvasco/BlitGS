@@ -632,8 +632,8 @@ public struct GamePadState
 
 public static class Gamepad
 {
-    private static GamePadState[] _gpState = null!;
-    private static GamePadState[] _lastGpState = null!;
+    private static readonly GamePadState[] _gpState;
+    private static readonly GamePadState[] _lastGpState;
 
     /* Based on the XInput constants */
     internal const float LeftDeadZone = 7849.0f / 32768.0f;
@@ -644,13 +644,14 @@ public static class Gamepad
 
     public static readonly int MaxCount = 2;
 
-    public static bool EnableGamepad { get; set; } = true;
-
-    internal static void Init()
+    static Gamepad()
     {
         _gpState = new GamePadState[MaxCount];
         _lastGpState = new GamePadState[MaxCount];
-
+    }
+    
+    internal static void Init()
+    {
         if (ConnectedGamePads <= 0) return;
 
         for (int i = 0; i < ConnectedGamePads; i++)

@@ -10,7 +10,7 @@ var gameConfig = new GameConfig()
     WindowWidth = CANVAS_WIDTH * 2,
     WindowHeight = CANVAS_HEIGHT * 2,
     CanvasWidth = CANVAS_WIDTH,
-    CanvasHeight = CANVAS_HEIGHT
+    CanvasHeight = CANVAS_HEIGHT,
 };
 
 using var game = new Demo(gameConfig);

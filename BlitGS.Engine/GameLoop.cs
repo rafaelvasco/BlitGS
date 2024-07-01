@@ -218,7 +218,12 @@ public static class GameLoop
     private static void TickInput()
     {
         Keyboard.UpdateState();
-        Gamepad.UpdateState();
+        Mouse.UpdateState();
+
+        if (Game.Config.EnableGamepad)
+        {
+            Gamepad.UpdateState();
+        }
     }
 
     private const double DefaultFrameRate = 60;

@@ -17,6 +17,9 @@ public class AssetInfo : IDefinitionData
 public class AssetsDefinition : IDefinitionData
 {
     public Dictionary<string, AssetInfo>? Images { get; init; }
+    
+    public Dictionary<string, AssetInfo>? Fonts { get; init; }
+    
     public bool IsValid()
     {
         return true;

@@ -9,10 +9,6 @@ internal static partial class Platform
     public static KeyEvent? KeyUp;
     public static TextInputEvent? TextInput;
 
-    private static readonly HashSet<Key> KeyPressBuffer = new();
-
-    private static Dictionary<int, Key> KeyMap = null!;
-
     private static void InitKeyboard()
     {
         KeyMap = new Dictionary<int, Key>()
@@ -229,4 +225,7 @@ internal static partial class Platform
                 }
         }
     }
+    
+    private static readonly HashSet<Key> KeyPressBuffer = [];
+    private static Dictionary<int, Key> KeyMap = null!;
 }

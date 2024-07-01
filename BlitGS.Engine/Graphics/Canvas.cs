@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using static bottlenoselabs.SDL;
 
 namespace BlitGS.Engine;
@@ -12,8 +14,6 @@ public static unsafe class Canvas
     public static int Height { get; private set; }
     
     public static StretchMode StretchMode { get; private set; }
-
-
 
     internal static void Init(GameConfig config)
     {
@@ -57,6 +57,7 @@ public static unsafe class Canvas
             SDL_ScaleMode.SDL_SCALEMODE_NEAREST);
 
         _ = SDL_SetTextureScaleMode(_state.CanvasTexture, SDL_ScaleMode.SDL_SCALEMODE_NEAREST);
+
     }
 
     internal static void Terminate()
@@ -314,6 +315,11 @@ public static unsafe class Canvas
                 {
                     int srcIdx = (px - x) + (py - y) * pixW;
                     uint c = *(srcPtr + srcIdx);
+
+                    if (c == ColorRGB.Empty)
+                    {
+                        continue;
+                    }
                     
                     PutPixel(ptr, px, py, c);
                 }
@@ -325,8 +331,8 @@ public static unsafe class Canvas
         Pixmap pixmap,
         int x, int y,
         Rectangle region = default,
-        int width = 0,
-        int height = 0,
+        int width = -1,
+        int height = -1,
         bool flip = false
     )
     {
@@ -335,7 +341,7 @@ public static unsafe class Canvas
             region = new Rectangle(0, 0, pixmap.Width, pixmap.Height);
         }
 
-        if (width <= 0 || height <= 0)
+        if (width < 0 || height < 0)
         {
             width = region.Width;
             height = region.Height;
@@ -343,6 +349,8 @@ public static unsafe class Canvas
 
         int x2 = x + width;
         int y2 = y + height;
+
+        int pw = pixmap.Width;
         
         fixed (uint* ptr = _targetPixmap.PixelBuffer)
         fixed (uint* srcPtr = pixmap.PixelBuffer)
@@ -357,9 +365,14 @@ public static unsafe class Canvas
                     for (int py = y; py < y2; ++py)
                     {
                         int srcIdx = (region.X + (int)((px - x) / factorW)) +
-                                     (region.Y + (int)((py - y) / factorH)) * pixmap.Width;
+                                      (region.Y + (int)((py - y) / factorH)) * pixmap.Width;
 
                         uint c = *(srcPtr + srcIdx);
+
+                        if (c == ColorRGB.Empty)
+                        {
+                            continue;
+                        }
                         
                         PutPixel(ptr, px, py, c);
                         
@@ -378,12 +391,46 @@ public static unsafe class Canvas
                                      (region.Top + (int)((py - y) / factorH)) * pixmap.Width;
             
                         uint c = *(srcPtr + srcIdx);
+
+                        if (c == ColorRGB.Empty)
+                        {
+                            continue;
+                        }
                         
                         PutPixel(ptr, px, py, c);
                     }
                 }
                 
             }
+        }
+    }
+
+    public static void Text(Font font, int x, int y, ReadOnlySpan<char> text)
+    {
+        var offset = new Point(0, 0);
+
+        for (int i = 0; i < text.Length; ++i)
+        {
+            var c = text[i];
+
+            switch (c)
+            {
+                case '\r':
+                    continue;
+                case '\n':
+                    offset.X = 0;
+                    offset.Y += font.GlyphHeight + font.LineSpacing;
+                    continue;
+                default:
+                {
+                    ref var glyphRect = ref font.GetGlyphRegion(c);
+            
+                    BlitEx(font, x + offset.X, y + offset.Y, glyphRect, glyphRect.Width, glyphRect.Height);
+                    break;
+                }
+            }
+            
+            offset.X += font.GlyphSpacing;
         }
     }
 
@@ -491,6 +538,15 @@ public static unsafe class Canvas
                     }
                     break;
             }
+        }
+    }
+
+    internal static void ConvertWindowCoordinatesToCanvas(float x, float y, out float canvasX, out float canvasY)
+    {
+        fixed (float* outX = &canvasX)
+        fixed (float* outY = &canvasY)    
+        {
+            _ = SDL_RenderCoordinatesFromWindow(_state.Renderer, x, y, outX, outY);
         }
     }
     
@@ -674,14 +730,11 @@ public static unsafe class Canvas
                 
                 break;
         }
-        
-       
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void LineValueMult(uint* linePtr, int length, float value, ValueFilterChannel channel)
     {
-
         switch (channel)
         {
             case ValueFilterChannel.All:
@@ -777,10 +830,10 @@ public static unsafe class Canvas
             SDL_free(screenSurface);
             return;
         }
-
-        using var stream = File.OpenWrite(file);
         
-        ImageIO.Save(screenSurface->pixels, screenSurface->w, screenSurface->h, stream);
+        using var outputStream = File.OpenWrite(file);
+        
+        ImageWriter.Save(screenSurface->pixels, screenSurface->w, screenSurface->h, outputStream);
         
         SDL_free(screenSurface);
     }
@@ -810,5 +863,4 @@ public static unsafe class Canvas
 
     private static State _state;
     private static Rectangle _clipRectangle;
-
 }

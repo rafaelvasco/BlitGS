@@ -286,6 +286,23 @@ public static class MathUtils
         int z = x - y;
         return x - ((z >> 31) & z);
     }
+    
+    public static int Max(int v1, int v2, int v3)
+    {
+        int max = v1;
+        if (v2 > max) max = v2;
+        if (v3 > max) max = v3;
+        return max;
+    }
+    
+    public static int Max(int v1, int v2, int v3, int v4)
+    {
+        int max = v1;
+        if (v2 > max) max = v2;
+        if (v3 > max) max = v3;
+        if (v4 > max) max = v4;
+        return max;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Max(float a, float b)
@@ -309,6 +326,23 @@ public static class MathUtils
     public static int Min(int a, int b)
     {
         return a < b ? a : b;
+    }
+    
+    public static int Min(int v1, int v2, int v3)
+    {
+        int min = v1;
+        if (v2 < min) min = v2;
+        if (v3 < min) min = v3;
+        return min;
+    }
+    
+    public static int Min(int v1, int v2, int v3, int v4)
+    {
+        int min = v1;
+        if (v2 < min) min = v2;
+        if (v3 < min) min = v3;
+        if (v4 < min) min = v4;
+        return min;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

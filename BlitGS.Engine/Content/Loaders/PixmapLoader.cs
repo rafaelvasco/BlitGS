@@ -2,10 +2,11 @@
 
 using System;
 using System.IO;
+using StbImageSharp;
 
 namespace BlitGS.Engine;
 
-internal class PixmapLoader : AssetLoader
+internal class PixmapLoader : AssetLoader<Pixmap>
 {
     public override Asset Load(string id, AssetsDefinition assetsDefinition)
     {
@@ -18,7 +19,7 @@ internal class PixmapLoader : AssetLoader
             try
             {
                 using var stream = File.OpenRead(assetFullPath);
-                var pixmap = ImageIO.Load(stream);
+                var pixmap = LoadFromStream(stream, Path.GetDirectoryName(assetFullPath)!);
                 pixmap.Id = id;
                 return pixmap;
             }
@@ -30,5 +31,19 @@ internal class PixmapLoader : AssetLoader
         
         BlitException.Throw($"There's no asset definition with the Id: {id}");
         return default!;
+    }
+
+    protected override Pixmap LoadFromStream(Stream stream, string assetDirectory)
+    {
+        var imageInfo = ImageResult.FromStream(stream);
+
+        if (imageInfo == null)
+        {
+            throw new Exception("ImageIO::Load: Failed to load image.");
+        }
+
+        var pixmap = new Pixmap(imageInfo.Data, imageInfo.Width, imageInfo.Height);
+
+        return pixmap;
     }
 }

@@ -16,12 +16,21 @@ internal static unsafe partial class Platform
         CreateWindow(gameConfig);
         
         InitKeyboard();
-        InitGamepad();
+        InitMouse();
+
+        if (gameConfig.EnableGamepad)
+        {
+            InitGamepad();
+        }
     }
 
     internal static void Terminate()
     {
-        SDL_QuitSubSystem((uint)SDL_InitFlags.SDL_INIT_GAMEPAD);
+        if (Game.Config.EnableGamepad)
+        {
+            SDL_QuitSubSystem((uint)SDL_InitFlags.SDL_INIT_GAMEPAD);
+        }
+        
         SDL_DestroyWindow(_state.Window);
         SDL_Quit();
     }
@@ -38,10 +47,20 @@ internal static unsafe partial class Platform
                 ProcessKeyEvent(e);
                 break;
             
+            case 
+                (uint) SDL_EventType.SDL_EVENT_MOUSE_MOTION or 
+                (uint) SDL_EventType.SDL_EVENT_MOUSE_BUTTON_DOWN or
+                (uint) SDL_EventType.SDL_EVENT_MOUSE_BUTTON_UP:
+                ProcessMouseEvent(e);
+                break;
             case  
                 (uint) SDL_EventType.SDL_EVENT_GAMEPAD_ADDED or
                 (uint) SDL_EventType.SDL_EVENT_GAMEPAD_REMOVED:
-                ProcessGamePadEvent(e);
+
+                if (Game.Config.EnableGamepad)
+                {
+                    ProcessGamePadEvent(e);
+                }
                 break;
             
             case 

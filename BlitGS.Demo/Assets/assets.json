@@ -3,6 +3,26 @@
     "sonic": {
       "Id": "sonic",
       "Path": "Images/sonic.png"
+    },
+    "jump": {
+      "Id": "jump",
+      "Path": "Images/jump.png"
+    }
+  },
+  "Fonts": {
+    "font": {
+      "Id": "font",
+      "Path": "Fonts/font.json",
+      "Image": "font.png",
+      "GlyphWidth": 16,
+      "GlyphHeight": 16,
+      "GlyphSpacing": 8,
+      "CharRangeStart": 32,
+      "CharRangeEnd":  127
+    },
+    "font2": {
+      "Id": "font2",
+      "Path": "Fonts/font2.json"
     }
   }
 }

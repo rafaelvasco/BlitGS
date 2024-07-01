@@ -1,0 +1,8 @@
+{
+  "Image": "font2.png",
+  "GlyphWidth": 16,
+  "GlyphHeight": 16,
+  "GlyphSpacing": 8,
+  "CharRangeStart": 32,
+  "CharRangeEnd":  127
+}

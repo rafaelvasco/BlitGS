@@ -12,6 +12,10 @@ public static class Content
     internal static void Init()
     {
         _assetLoaders[typeof(Pixmap)] = new PixmapLoader();
+        _assetLoaders[typeof(Font)] = new FontLoader();
+
+        _assetWriters[typeof(Pixmap)] = new PixmapWriter();
+        
         _assetsDefinition = LoadAssetsDefinition();
     }
 
@@ -39,6 +43,14 @@ public static class Content
         
         BlitException.Throw($"No Loader Registered for this type: {typeof(T)}");
         return default!;
+    }
+
+    public static void Write<T>(T asset, string outputPath) where T : Asset
+    {
+        if (_assetWriters.TryGetValue(typeof(T), out var writer))
+        {
+            writer.WriteToFile(asset, outputPath);
+        }
     }
 
     private static AssetsDefinition LoadAssetsDefinition()
@@ -71,5 +83,6 @@ public static class Content
     
     private static readonly Dictionary<string, Asset> _loadedAssets = new();
 
-    private static readonly Dictionary<Type, AssetLoader> _assetLoaders = new();
+    private static readonly Dictionary<Type, IAssetLoader> _assetLoaders = new();
+    private static readonly Dictionary<Type, AssetWriter> _assetWriters = new();
 }
